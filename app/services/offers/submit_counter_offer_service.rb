@@ -12,6 +12,7 @@ module Offers
       @order.with_lock do
         SubmitOfferService.new(@offer).process!
       end
+      @order.update!(state_expires_at: @order.state_expires_at + 2.days)
       post_process!
     end
 

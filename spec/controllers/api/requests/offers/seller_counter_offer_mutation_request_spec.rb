@@ -12,7 +12,7 @@ describe Api::GraphqlController, type: :request do
     let(:artwork) { { _id: 'a-1', current_version_id: '1', location: artwork_location, domestic_shipping_fee_cents: 1000 } }
     let(:order_state) { Order::SUBMITTED }
     let!(:order) { Fabricate(:order, state: order_state, seller_id: order_seller_id, buyer_id: buyer_id, **shipping_info) }
-    let!(:offer) { Fabricate(:offer, order: order, amount_cents: 10000, from_id: buyer_id, from_type: Order::USER, submitted_at: Time.now.utc) }
+    let!(:offer) { Fabricate(:offer, order: order, amount_cents: 10000, from_id: buyer_id, from_type: Order::USER, submitted_at: Time.now.utc - 10.hours) }
     let(:line_item_artwork_version) { artwork[:current_version_id] }
     let!(:line_item) { Fabricate(:line_item, order: order, list_price_cents: 2000_00, artwork_id: artwork[:_id], artwork_version_id: line_item_artwork_version, quantity: 2) }
     let(:partner_address) do
@@ -155,6 +155,7 @@ describe Api::GraphqlController, type: :request do
         allow(Adapters::GravityV1).to receive(:get).with("/partner/#{order_seller_id}/all").and_return(gravity_v1_partner)
       end
       it 'counters the order' do
+        state_expiration_before = order.state_expires_at
         expect do
           response = client.execute(mutation, seller_counter_offer_input)
           expect(response.data.seller_counter_offer.order_or_error).not_to respond_to(:error)
@@ -170,6 +171,7 @@ describe Api::GraphqlController, type: :request do
           expect(last_offer.from_id).to eq(order_seller_id)
           # should update order amounts when offer is submitted
           expect(order.items_total_cents).to eq(400000)
+          expect(order.reload.state_expires_at.to_i).to eq((state_expiration_before + 2.days).to_i)
         end.to change { order.reload.offers.count }.from(1).to(2)
       end
     end
