@@ -21,12 +21,14 @@ describe Offers::SubmitCounterOfferService, type: :services do
 
     context 'with a submitted offer' do
       it 'submits the pending offer and updates last offer' do
+        state_expiration_before = order.state_expires_at
         service.process!
         expect(order.offers.count).to eq(2)
         expect(order.last_offer).to eq(pending_offer)
         expect(order.last_offer.amount_cents).to eq(20000)
         expect(order.last_offer.responds_to).to eq(offer)
         expect(pending_offer.submitted_at).not_to be_nil
+        expect(order.reload.state_expires_at.to_i).to eq((state_expiration_before + Order::STATE_EXPIRATIONS['submitted']).to_i)
       end
 
       it 'instruments a counter offer' do
