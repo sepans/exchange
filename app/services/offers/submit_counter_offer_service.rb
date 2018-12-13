@@ -12,6 +12,7 @@ module Offers
       @order.with_lock do
         SubmitOfferService.new(@offer).process!
       end
+      OrderFollowUpJob.set(wait_until: @order.state_expires_at).perform_later(@order.id, @order.state)
       post_process!
     end
 

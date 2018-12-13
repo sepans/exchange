@@ -20,15 +20,25 @@ describe Offers::SubmitCounterOfferService, type: :services do
     end
 
     context 'with a submitted offer' do
-      it 'submits the pending offer and updates last offer' do
-        service.process!
-        expect(order.offers.count).to eq(2)
-        expect(order.last_offer).to eq(pending_offer)
-        expect(order.last_offer.amount_cents).to eq(20000)
-        expect(order.last_offer.responds_to).to eq(offer)
-        expect(pending_offer.submitted_at).not_to be_nil
+      context 'adds counter offer' do
+        before do
+          service.process!
+        end
+        it 'submits the pending offer and updates last offer' do
+          expect(order.offers.count).to eq(2)
+          expect(pending_offer.submitted_at).not_to be_nil
+          expect(order.last_offer).to eq(pending_offer)
+        end
+        it 'updates last offer amount cents' do
+          expect(order.last_offer.amount_cents).to eq(20000)
+        end
+        it 'sets the last offer responds to to point to the previous offer' do
+          expect(order.last_offer.responds_to).to eq(offer)
+        end
+        it 'does sets the flow up job to cancel the order after 48 hours' do
+          expect(OrderFollowUpJob).to have_been_enqueued.with(order.id, Order::SUBMITTED)
+        end
       end
-
       it 'instruments a counter offer' do
         dd_statsd = stub_ddstatsd_instance
         allow(dd_statsd).to receive(:increment).with('offer.counter')
