@@ -166,6 +166,23 @@ describe OrderCancellationService, type: :services do
     end
   end
 
+  describe '#buyer_lapse!' do
+    context 'Offer Order' do
+      let(:order_mode) { Order::OFFER }
+      let!(:line_items) { [Fabricate(:line_item, order: order, artwork_id: 'a-1', list_price_cents: 123_00)] }
+      before do
+        service.buyer_lapse!
+      end
+      it 'updates the order state' do
+        expect(order.state).to eq Order::CANCELED
+        expect(order.state_reason).to eq Order::REASONS[Order::CANCELED][:buyer_lapsed]
+      end
+      it 'queues notification job' do
+        expect(PostOrderNotificationJob).to have_been_enqueued.with(order.id, Order::CANCELED)
+      end
+    end
+  end
+
   describe '#refund!' do
     [Order::APPROVED, Order::FULFILLED].each do |state|
       context "#{state} order" do

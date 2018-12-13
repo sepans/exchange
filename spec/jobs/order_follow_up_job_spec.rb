@@ -16,10 +16,34 @@ describe OrderFollowUpJob, type: :job do
       end
       context 'expired SUBMITTED' do
         let(:state) { Order::SUBMITTED }
-        it 'transitions a submitted order to seller_lapsed' do
-          Timecop.freeze(order.state_expires_at + 1.second) do
-            expect_any_instance_of(OrderCancellationService).to receive(:seller_lapse!)
-            OrderFollowUpJob.perform_now(order.id, Order::SUBMITTED)
+        let(:offer_from) { Order::PARTNER }
+        let(:offer) { Fabricate(:offer, from_type: offer_from) }
+        let(:order) { Fabricate(:order, mode: Order::OFFER, last_offer: offer, state: state) }
+        context 'Buy order' do
+          it 'transitions a submitted order to seller_lapsed' do
+            Timecop.freeze(order.state_expires_at + 1.second) do
+              expect_any_instance_of(OrderCancellationService).to receive(:seller_lapse!)
+              OrderFollowUpJob.perform_now(order.id, Order::SUBMITTED)
+            end
+          end
+        end
+        context 'Offer order' do
+          context 'Last offer from seller' do
+            it 'transitions a submitted order to seller_lapsed' do
+              Timecop.freeze(order.state_expires_at + 1.second) do
+                expect_any_instance_of(OrderCancellationService).to receive(:seller_lapse!)
+                OrderFollowUpJob.perform_now(order.id, Order::SUBMITTED)
+              end
+            end
+          end
+          context 'Last offer from buyer' do
+            let(:offer_from) { Order::USER }
+            it 'transitions a submitted order to seller_lapsed' do
+              Timecop.freeze(order.state_expires_at + 1.second) do
+                expect_any_instance_of(OrderCancellationService).to receive(:buyer_lapse!)
+                OrderFollowUpJob.perform_now(order.id, Order::SUBMITTED)
+              end
+            end
           end
         end
       end

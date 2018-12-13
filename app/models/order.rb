@@ -42,7 +42,8 @@ class Order < ApplicationRecord
       seller_rejected_artwork_unavailable: 'seller_rejected_artwork_unavailable'.freeze,
       seller_rejected_other: 'seller_rejected_other'.freeze,
       seller_rejected: 'seller_rejected'.freeze,
-      buyer_rejected: 'buyer_rejected'.freeze
+      buyer_rejected: 'buyer_rejected'.freeze,
+      buyer_lapsed: 'buyer_lapsed'.freeze
     }
   }.freeze
 
@@ -57,9 +58,10 @@ class Order < ApplicationRecord
     SHIP = 'ship'.freeze
   ].freeze
 
-  ACTIONS = %i[abandon submit approve reject fulfill seller_lapse refund].freeze
+  ACTIONS = %i[abandon submit approve reject fulfill seller_lapse buyer_lapse refund].freeze
   ACTION_REASONS = {
     seller_lapse: REASONS[CANCELED][:seller_lapsed],
+    buyer_lapse: REASONS[CANCELED][:buyer_lapsed],
     reject: REASONS[CANCELED][:seller_rejected_other]
   }.freeze
 
@@ -219,6 +221,7 @@ class Order < ApplicationRecord
     machine.when(:approve, SUBMITTED => APPROVED)
     machine.when(:reject, SUBMITTED => CANCELED)
     machine.when(:seller_lapse, SUBMITTED => CANCELED)
+    machine.when(:buyer_lapse, SUBMITTED => CANCELED)
     machine.when(:cancel, SUBMITTED => CANCELED)
     machine.when(:fulfill, APPROVED => FULFILLED)
     machine.when(:refund, APPROVED => REFUNDED, FULFILLED => REFUNDED)
