@@ -157,6 +157,9 @@ type BuyerRejectOfferPayload {
 }
 
 enum CancelReasonTypeEnum {
+  # cancelation reason is: buyer_lapsed
+  BUYER_LAPSED
+
   # cancelation reason is: buyer_rejected
   BUYER_REJECTED
 
