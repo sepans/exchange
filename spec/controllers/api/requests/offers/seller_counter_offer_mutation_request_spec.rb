@@ -155,7 +155,6 @@ describe Api::GraphqlController, type: :request do
         allow(Adapters::GravityV1).to receive(:get).with("/partner/#{order_seller_id}/all").and_return(gravity_v1_partner)
       end
       it 'counters the order' do
-        state_expiration_before = order.state_expires_at
         expect do
           response = client.execute(mutation, seller_counter_offer_input)
           expect(response.data.seller_counter_offer.order_or_error).not_to respond_to(:error)
@@ -171,7 +170,7 @@ describe Api::GraphqlController, type: :request do
           expect(last_offer.from_id).to eq(order_seller_id)
           # should update order amounts when offer is submitted
           expect(order.items_total_cents).to eq(400000)
-          expect(order.reload.state_expires_at.to_i).to eq((state_expiration_before + Order::STATE_EXPIRATIONS['submitted']).to_i)
+          expect(order.reload.state_expires_at.to_i).to eq((Time.now.utc + Order::STATE_EXPIRATIONS['submitted']).to_i)
         end.to change { order.reload.offers.count }.from(1).to(2)
       end
     end

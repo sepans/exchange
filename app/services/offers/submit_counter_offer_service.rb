@@ -12,7 +12,7 @@ module Offers
       @order.with_lock do
         SubmitOfferService.new(@offer).process!
       end
-      @order.update!(state_expires_at: @order.state_expires_at + Order::STATE_EXPIRATIONS['submitted'])
+      @order.update!(state_expires_at: Time.now.utc + Order::STATE_EXPIRATIONS['submitted'])
       post_process!
     end
 
