@@ -16,7 +16,8 @@ class Mutations::BaseRejectOffer < Mutations::BaseMutation
     raise Errors::ValidationError, :not_last_offer unless offer.last_offer?
     raise Errors::ValidationError, :cannot_reject_offer unless waiting_for_response?(offer)
 
-    OrderCancellationService.new(offer.order, current_user_id).reject!(sanitize_reject_reason(reject_reason))
+    # OrderCancellationService.new(offer.order, current_user_id).reject!(sanitize_reject_reason(reject_reason))
+    OrderService.reject!(offer.order, current_user_id, sanitize_reject_reason(reject_reason))
 
     { order_or_error: { order: order } }
   rescue Errors::ApplicationError => e

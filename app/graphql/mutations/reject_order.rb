@@ -8,7 +8,8 @@ class Mutations::RejectOrder < Mutations::BaseMutation
   def resolve(id:)
     order = Order.find(id)
     authorize_seller_request!(order)
-    OrderCancellationService.new(order, context[:current_user][:id]).reject!
+    # OrderCancellationService.new(order, context[:current_user][:id]).reject!
+    OrderService.reject!(order, context[:current_user][:id])
     {
       order_or_error: { order: order }
     }

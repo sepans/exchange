@@ -120,6 +120,32 @@ module OrderService
     order
   end
 
+  def self.refund!(order, user_id)
+    cancelation_helper = CancelationHelper.new(order)
+    transaction = nil
+    order.refund! do
+      transaction = cancelation_helper.process_stripe_refund
+    end
+    cancelation_helper.record_stats
+    cancelation_helper.process_inventory_undeduction
+    OrderEvent.delay_post(order, user_id)
+  ensure
+    order.transactions << transaction if transaction.present?
+  end
+
+  def self.reject!(order, user_id, rejection_reason = nil)
+    transaction = nil
+    cancelation_helper = CancelationHelper.new(order)
+    order.reject!(rejection_reason) do
+      transaction = cancelation_helper.cancel_payment_intent if order.mode == Order::BUY
+    end
+    cancelation_helper.process_inventory_undeduction if order.mode == Order::BUY
+    Exchange.dogstatsd.increment 'order.reject'
+    OrderEvent.delay_post(order, user_id)
+  ensure
+    order.transactions << transaction if transaction.present?
+  end
+
   def self.abandon!(order)
     order.abandon!
   end
